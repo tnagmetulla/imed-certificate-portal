@@ -134,14 +134,20 @@
     try{ await document.fonts.ready; }catch(e){ /* ignore */ }
     await new Promise(r => setTimeout(r, 150));
 
+    // на телефонах уменьшаем scale: холст scale:2 (2616×1848) часто упирается в лимит
+    // памяти/размера canvas в мобильных браузерах (особенно iOS Safari) и генерация падает
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+                     || Math.min(window.innerWidth, window.screen ? window.screen.width : 9999) < 820;
+    const scale = isMobile ? 1.5 : 2;
+
     const element = document.getElementById(`pdf-cert-${cert.number}`);
     const opt = {
       margin:       0,
       filename:     `Сертификат_${cert.number}_${cert.name.replace(/\s+/g, '_')}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
+      image:        { type: 'jpeg', quality: 0.95 },
       // width/height/windowWidth/windowHeight фиксируют полный размер диплома (1308×924),
       // иначе html2canvas снимает только видимую часть окна и обрезает сертификат справа
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#FDFBF9',
+      html2canvas:  { scale: scale, useCORS: true, letterRendering: true, backgroundColor: '#FDFBF9',
                       width: 1308, height: 924, windowWidth: 1308, windowHeight: 924 },
       // avoid-all запрещает разбиение узкого/высокого холста на вторую страницу (обрезка снизу)
       pagebreak:    { mode: 'avoid-all' },
@@ -151,7 +157,8 @@
       await html2pdf().set(opt).from(element).save();
     }catch(err){
       console.error('Ошибка при создании PDF:', err);
-      alert('Не удалось создать PDF. Откройте консоль браузера (Cmd+Option+J) и пришлите скриншот ошибки.');
+      const msg = (err && (err.message || err.name)) ? (err.message || err.name) : String(err);
+      alert('Не удалось создать PDF: ' + msg + '\n\nПопробуйте ещё раз. Если не помогает — откройте сертификат на компьютере.');
     }
 
     container.innerHTML = ''; // очищаем скрытую область после скачивания
