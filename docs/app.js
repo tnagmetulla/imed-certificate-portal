@@ -80,23 +80,32 @@
     wrap.innerHTML = buildCertificateMarkup(cert, 'preview');
     makeQR(`qr-preview-${cert.number}`, cert.number);
 
-    const certEl = wrap.querySelector('.certificate');
-    const scaleToFit = () => {
-      const avail = Math.min(window.innerWidth * 0.9, 992);
-      const s = Math.min(1, avail / 1308);
-      certEl.style.transform = `scale(${s})`;
-      wrap.style.width  = (1308 * s) + 'px';
-      wrap.style.height = (924 * s) + 'px';
-    };
-    scaleToFit();
-    modal._scaleToFit = scaleToFit;
-    window.addEventListener('resize', scaleToFit);
-
     document.getElementById('cert-download-btn').onclick = function(){ downloadPDF(cert.number, this); };
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden','false');
     document.body.style.overflow = 'hidden';
+
+    // вписываем диплом (1308×924) на весь экран — по ширине И высоте.
+    // размер считаем от вьюпорта минус ряды заголовка и кнопок + запас, чтобы кнопки
+    // всегда оставались видимыми (не полагаемся на измерение высоты гибкой сцены).
+    const certEl = wrap.querySelector('.certificate');
+    const inner  = modal.querySelector('.cert-modal-inner');
+    const title  = modal.querySelector('.cert-modal-title');
+    const sub    = modal.querySelector('.cert-modal-sub');
+    const acts   = modal.querySelector('.cert-modal-actions');
+    const scaleToFit = () => {
+      const availW = inner.clientWidth - 8;
+      const availH = inner.clientHeight - title.offsetHeight - sub.offsetHeight - acts.offsetHeight - 44;
+      const s = Math.max(0.1, Math.min(availW / 1308, availH / 924));
+      certEl.style.transform = `scale(${s})`;
+      wrap.style.width  = (1308 * s) + 'px';
+      wrap.style.height = (924 * s) + 'px';
+    };
+    // ждём, пока раскладка (flex) устаканится, иначе высота сцены измеряется до резервирования кнопок
+    requestAnimationFrame(() => requestAnimationFrame(scaleToFit));
+    modal._scaleToFit = scaleToFit;
+    window.addEventListener('resize', scaleToFit);
   }
 
   function closeCertModal(){
