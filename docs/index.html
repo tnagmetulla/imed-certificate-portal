@@ -276,6 +276,23 @@
 <!-- Скрытая область: здесь собирается полный диплом только в момент скачивания PDF. Никогда не показывается на странице. -->
 <div id="pdf-render-area"></div>
 
+<!-- Модалка предпросмотра: показывает сертификат и кнопку скачивания перед сохранением файла -->
+<div id="cert-modal" class="cert-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="cert-modal-title">
+  <div class="cert-modal-backdrop" data-close></div>
+  <div class="cert-modal-inner">
+    <button class="cert-modal-close" type="button" aria-label="Закрыть" data-close>&times;</button>
+    <h3 class="cert-modal-title" id="cert-modal-title">Предпросмотр сертификата</h3>
+    <p class="cert-modal-sub" id="cert-modal-sub"></p>
+    <div class="cert-preview-scroll">
+      <div class="cert-preview-wrap" id="cert-preview-wrap"></div>
+    </div>
+    <div class="cert-modal-actions">
+      <button class="nav-cta" id="cert-download-btn" type="button">Скачать PDF</button>
+      <button class="cert-modal-cancel" type="button" data-close>Закрыть</button>
+    </div>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

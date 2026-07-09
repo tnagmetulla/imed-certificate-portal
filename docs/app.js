@@ -37,38 +37,89 @@
         <span class="status-badge">Подтверждено</span>
         <div class="cert-row-name">${cert.name}</div>
       </div>
-      <button class="nav-cta" style="font-size:0.85rem;padding:10px 24px;" onclick="downloadPDF('${cert.number}')">Скачать PDF</button>
+      <button class="nav-cta" style="font-size:0.85rem;padding:10px 24px;" onclick="showCertPreview('${cert.number}')">Скачать PDF</button>
     `;
     resultsEl.appendChild(div);
   }
 
-  // Собирает разметку полного диплома — используется ТОЛЬКО в скрытой области для генерации PDF
-  function buildCertificateMarkup(cert){
+  // Собирает разметку полного диплома. mode='pdf' — для скрытой генерации, mode='preview' — для модалки.
+  // Разные префиксы id, чтобы превью и PDF-копия могли существовать одновременно без дублей id.
+  function buildCertificateMarkup(cert, mode){
+    const p = mode === 'preview' ? 'preview' : 'pdf';
     return `
-      <div class="certificate" id="pdf-cert-${cert.number}">
+      <div class="certificate" id="${p}-cert-${cert.number}">
         <div class="cert-overlay cert-overlay-name">${cert.name}</div>
         <div class="cert-overlay cert-overlay-course">«${cert.course}»</div>
         <div class="cert-overlay cert-overlay-date">${cert.date}</div>
         <div class="cert-overlay cert-overlay-regnum">${cert.number}</div>
-        <div class="cert-overlay cert-overlay-qr" id="qr-pdf-${cert.number}"></div>
+        <div class="cert-overlay cert-overlay-qr" id="qr-${p}-${cert.number}"></div>
       </div>
     `;
   }
 
-  // Генерация PDF: диплом собирается и рисуется в скрытой области, никогда не показывается на странице
-  async function downloadPDF(certNumber) {
-    const cert = certificates.find(c => c.number === certNumber);
-    if(!cert) return;
-
-    const container = document.getElementById('pdf-render-area');
-    container.innerHTML = buildCertificateMarkup(cert);
-
-    new QRCode(document.getElementById(`qr-pdf-${cert.number}`), {
-      text: `https://imedinstitute.kz/verify/${cert.number}`,
+  function makeQR(elId, certNumber){
+    new QRCode(document.getElementById(elId), {
+      text: `https://imedinstitute.kz/verify/${certNumber}`,
       width: 110, height: 110,
       colorDark:"#16305A", colorLight:"#FDFBF9",
       correctLevel: QRCode.CorrectLevel.M
     });
+  }
+
+  // Клик по «Скачать PDF» в результатах: сначала показываем предпросмотр в модалке,
+  // файл скачивается только по кнопке внутри модалки.
+  function showCertPreview(certNumber){
+    const cert = certificates.find(c => c.number === certNumber);
+    if(!cert) return;
+
+    const modal = document.getElementById('cert-modal');
+    const wrap  = document.getElementById('cert-preview-wrap');
+    document.getElementById('cert-modal-sub').textContent = `${cert.name} · ${cert.number}`;
+
+    // строим полноразмерный диплом (1308×924) и масштабируем под ширину экрана
+    wrap.innerHTML = buildCertificateMarkup(cert, 'preview');
+    makeQR(`qr-preview-${cert.number}`, cert.number);
+
+    const certEl = wrap.querySelector('.certificate');
+    const scaleToFit = () => {
+      const avail = Math.min(window.innerWidth * 0.9, 992);
+      const s = Math.min(1, avail / 1308);
+      certEl.style.transform = `scale(${s})`;
+      wrap.style.width  = (1308 * s) + 'px';
+      wrap.style.height = (924 * s) + 'px';
+    };
+    scaleToFit();
+    modal._scaleToFit = scaleToFit;
+    window.addEventListener('resize', scaleToFit);
+
+    document.getElementById('cert-download-btn').onclick = function(){ downloadPDF(cert.number, this); };
+
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCertModal(){
+    const modal = document.getElementById('cert-modal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    document.body.style.overflow = '';
+    document.getElementById('cert-preview-wrap').innerHTML = '';
+    if(modal._scaleToFit){ window.removeEventListener('resize', modal._scaleToFit); modal._scaleToFit = null; }
+  }
+
+  // Генерация PDF: диплом собирается и рисуется в скрытой области, никогда не показывается на странице.
+  // Вызывается из кнопки в модалке предпросмотра (btn — эта кнопка, для индикатора загрузки).
+  async function downloadPDF(certNumber, btn) {
+    const cert = certificates.find(c => c.number === certNumber);
+    if(!cert) return;
+
+    if(btn){ btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = 'Готовим PDF…'; }
+
+    const container = document.getElementById('pdf-render-area');
+    container.innerHTML = buildCertificateMarkup(cert, 'pdf');
+
+    makeQR(`qr-pdf-${cert.number}`, cert.number);
 
     // ждём, чтобы шрифты (курсив) точно успели загрузиться перед захватом
     try{ await document.fonts.ready; }catch(e){ /* ignore */ }
@@ -95,6 +146,8 @@
     }
 
     container.innerHTML = ''; // очищаем скрытую область после скачивания
+
+    if(btn){ btn.disabled = false; btn.textContent = btn.dataset.label || 'Скачать PDF'; }
   }
 
   function renderResults(list, emptyReason){
@@ -126,6 +179,11 @@
   countEl.textContent = certificates.length;
   renderResults(certificates, 'no-source');
   loadCertificatesFromSheet();
+
+  // закрытие модалки предпросмотра: клик по фону/крестику/«Закрыть» или Esc
+  const certModal = document.getElementById('cert-modal');
+  certModal.addEventListener('click', e => { if(e.target.hasAttribute('data-close')) closeCertModal(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && certModal.classList.contains('open')) closeCertModal(); });
 
   // mobile menu
   const burger = document.getElementById('burger');

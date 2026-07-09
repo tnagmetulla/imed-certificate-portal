@@ -179,6 +179,37 @@
   }
   .cert-overlay-qr canvas, .cert-overlay-qr img{width:110px !important;height:110px !important;}
 
+  /* ---------- Модалка предпросмотра сертификата ---------- */
+  .cert-modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:24px;}
+  .cert-modal.open{display:flex;}
+  .cert-modal-backdrop{position:absolute;inset:0;background:rgba(11,36,32,0.62);backdrop-filter:blur(3px);}
+  .cert-modal-inner{
+    position:relative;background:var(--surface);border-radius:20px;padding:24px 24px 22px;
+    width:100%;max-width:min(96vw,1040px);max-height:92vh;overflow:auto;
+    box-shadow:0 30px 60px -20px rgba(11,61,59,0.55);
+    display:flex;flex-direction:column;gap:14px;align-items:center;
+    animation:fadein .2s ease both;
+  }
+  .cert-modal-close{
+    position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.9rem;line-height:1;
+    color:var(--ink-soft);cursor:pointer;padding:2px 8px;border-radius:8px;transition:color .15s ease;
+  }
+  .cert-modal-close:hover{color:var(--primary);}
+  .cert-modal-title{font-size:1.15rem;align-self:flex-start;}
+  .cert-modal-sub{align-self:flex-start;color:var(--ink-soft);font-size:0.9rem;margin:-8px 0 2px;}
+  .cert-preview-scroll{width:100%;overflow-x:auto;display:flex;justify-content:center;}
+  .cert-preview-wrap{position:relative;flex-shrink:0;border-radius:8px;overflow:hidden;}
+  .cert-preview-wrap .certificate{position:absolute;top:0;left:0;transform-origin:top left;}
+  .cert-modal-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:2px;}
+  .cert-modal-cancel{
+    background:transparent;border:1px solid var(--line);color:var(--ink-soft);
+    padding:10px 24px;border-radius:999px;font-family:inherit;font-weight:600;font-size:0.85rem;cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .cert-modal-cancel:hover{border-color:var(--primary);color:var(--primary);}
+  #cert-download-btn{font-size:0.85rem;padding:10px 24px;border:none;cursor:pointer;}
+  #cert-download-btn[disabled]{opacity:0.6;cursor:progress;}
+
   .no-results{
     background:var(--surface);border:1.5px dashed var(--line);border-radius:16px;
     padding:36px 24px;text-align:center;color:var(--ink-soft);
@@ -283,11 +314,6 @@
     .about{grid-template-columns:1fr;}
     .verify{grid-template-columns:1fr;padding:32px;text-align:left;}
     .foot-grid{grid-template-columns:1fr 1fr;}
-    .cert-qr-wrap{flex-direction:row;justify-content:flex-start;}
-    .certificate{padding:30px 22px 26px;}
-    .cert-footer{flex-direction:column;align-items:center;text-align:center;gap:14px;}
-    .cert-title{font-size:1.6rem;}
-    .cert-recipient{font-size:1.3rem;}
   }
   @media (prefers-reduced-motion: reduce){
     html{scroll-behavior:auto;}
